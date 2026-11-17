@@ -20,7 +20,7 @@ interactive OpenAPI page FastAPI generates is at `/docs`.
 | Part | Kind | Holds |
 |---|---|---|
 | `pack` | file, repeatable | Every file of the client's server folder, sub-folders included. The part's **file name** is the path relative to the server folder, with `/` (`candidate_profile.json`, `cache/pool.json`). |
-| `job` | file, repeatable | The posting as this server sees it: `jd.txt`, `analysis.json`, and the files this server stored for the job before (`cv.json`, `cv.tex`, `steps/...`), named relative to its subfolder. A bare posting is a job with only `jd.txt`. |
+| `job` | file, repeatable | The posting as this server sees it: `job_description.txt`, `analysis.json`, and the files this server stored for the job before (`cv.json`, `cv.tex`, `steps/...`), named relative to its subfolder. A bare posting is a job with only `job_description.txt`. |
 | `settings` | form field | A JSON object: the `settings` table of the server's section in the client's `cv.toml`, forwarded untouched. Absent means `{}`. |
 
 What the files and settings mean is the pipeline's business: each server
@@ -123,10 +123,10 @@ its job.
 
 ## `POST /v1/jd/detect`
 
-Is the job's `jd.txt` a job posting?
+Is the job's `job_description.txt` a job posting?
 
 ```bash
-curl -F job=@JD.txt\;filename=jd.txt localhost:8080/v1/jd/detect
+curl -F job=@job_description.txt localhost:8080/v1/jd/detect
 ```
 
 Structural checks run first — length band (`ATS_JD_MIN_CHARS` …
@@ -134,7 +134,7 @@ Structural checks run first — length band (`ATS_JD_MIN_CHARS` …
 pass does it cost one small model call. The answer is
 `{"is_job_description": true|false}`; why is in the request's log, not in the
 reply. The same structural check ships in `cv_contracts.static_jd_guess`, so a
-client can run it before spending the call at all. No `jd.txt` is a `400
+client can run it before spending the call at all. No `job_description.txt` is a `400
 missing_part`; `pack` and `settings` are ignored.
 
 ## `POST /v1/jd/analysis`
@@ -142,7 +142,7 @@ missing_part`; `pack` and `settings` are ignored.
 Scores a posting against the candidate in the pack and extracts its facts.
 
 ```bash
-curl -F job=@JD.txt\;filename=jd.txt \
+curl -F job=@job_description.txt \
      -F pack=@candidate_profile.json -F pack=@candidate_preferences.md \
      localhost:8080/v1/jd/analysis
 ```
@@ -176,8 +176,8 @@ sequenceDiagram
 ```
 
 ```bash
-ID=$(sha256sum JD.txt | cut -c1-64)
-curl -s -H "X-Request-Id: $ID" -F job=@JD.txt\;filename=jd.txt \
+ID=$(sha256sum job_description.txt | cut -c1-64)
+curl -s -H "X-Request-Id: $ID" -F job=@job_description.txt \
      -F pack=@candidate_profile.json -F pack=@candidate_data.json \
      -F settings='{"pages": 2}' localhost:8080/v1/cv
 curl -sN localhost:8080/v1/cv/$ID/events      # the job, to its last event
@@ -191,7 +191,7 @@ version:
 
 1. the job holds `cv.json` → it is rendered (the document wins over the tex);
 2. else it holds `cv.tex` → it is compiled as it stands;
-3. else the CV is written from `jd.txt`.
+3. else the CV is written from `job_description.txt`.
 
 There is no step-level resume: a job that holds only `steps/...` is written
 again. A **written** CV stores `step` `cv.json` (the merged document,
@@ -205,7 +205,7 @@ Answers `202` with `{"request_id": "<id>", "ok": true, "data": {"reattached":
 false}}`.
 
 **The session id is the caller's.** Send it as `X-Request-Id`. The client
-uses the SHA-256 of the job's `jd.txt`, so running the same posting again
+uses the SHA-256 of the job's `job_description.txt`, so running the same posting again
 finds the session it already has, and a client that died, or lost its
 connection, loses nothing it paid for. When the id already has a session,
 nothing is started — no slot is claimed either — and the answer says
@@ -312,7 +312,7 @@ document dates it today.
 ## `POST /v1/letter`
 
 ```bash
-curl -F job=@JD.txt\;filename=jd.txt -F job=@analysis.json \
+curl -F job=@job_description.txt -F job=@analysis.json \
      -F pack=@candidate_profile.json -F pack=@candidate_data.json \
      localhost:8080/v1/letter
 ```
