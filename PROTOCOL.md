@@ -13,6 +13,10 @@ to a 0.5, a 1.x and a 2.0 server, side by side, on the same posting.
 Base URL is wherever you run it — `http://localhost:8080` by default. The
 interactive OpenAPI page FastAPI generates is at `/docs`.
 
+The first path segment names the pipeline (`/v1` today), and every pipeline
+answers the same endpoints with the same shapes; a client picks one with
+`pipeline` in its server section. The examples below use `/v1`.
+
 ## Conventions
 
 **Three parts, on every pipeline request.**
@@ -33,7 +37,7 @@ anything is read; any one file over `ATS_MAX_PART_BYTES` (2 MB) is a `413`;
 `settings` that is not a JSON object is a `400`. A repeated name: the last one
 wins.
 
-**Auth.** If `ATS_API_TOKEN` is set, every `/v1/...` call must send
+**Auth.** If `ATS_API_TOKEN` is set, every `/{pipeline}/...` call must send
 `Authorization: Bearer <token>`; `/healthz` stays open so a platform probe
 works. With no token set, the server is open to anyone who can reach it, which
 is only reasonable on a private network.
@@ -93,14 +97,14 @@ of a REST reply when the request made at least one model call.
 | Method | Path | Auth | Costs | `data` |
 |---|---|---|---|---|
 | `GET` | `/healthz` | no | nothing | `ServerStatus` |
-| `POST` | `/v1/jd/detect` | yes | 0–1 small model call | `Detection` |
-| `POST` | `/v1/jd/analysis` | yes | 1 small model call | `Analysed` |
-| `POST` | `/v1/cv` | yes | minutes of model calls, a render, or nothing for a session already there | `202` + `CVSession` |
-| `GET` | `/v1/cv/{id}/events` | yes | nothing | server-sent events |
-| `DELETE` | `/v1/cv/{id}` | yes | nothing | `200`, no data |
-| `DELETE` | `/v1/cv?all` | yes | nothing | `Cleanup` |
-| `POST` | `/v1/cv/render` | yes | one `pdflatex` run | `Rendered` |
-| `POST` | `/v1/letter` | yes | 1 small model call | `Letter` |
+| `POST` | `/{pipeline}/jd/detect` | yes | 0–1 small model call | `Detection` |
+| `POST` | `/{pipeline}/jd/analysis` | yes | 1 small model call | `Analysed` |
+| `POST` | `/{pipeline}/cv` | yes | minutes of model calls, a render, or nothing for a session already there | `202` + `CVSession` |
+| `GET` | `/{pipeline}/cv/{id}/events` | yes | nothing | server-sent events |
+| `DELETE` | `/{pipeline}/cv/{id}` | yes | nothing | `200`, no data |
+| `DELETE` | `/{pipeline}/cv?all` | yes | nothing | `Cleanup` |
+| `POST` | `/{pipeline}/cv/render` | yes | one `pdflatex` run | `Rendered` |
+| `POST` | `/{pipeline}/letter` | yes | 1 small model call | `Letter` |
 
 ---
 
