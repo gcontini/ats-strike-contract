@@ -13,9 +13,11 @@ to a 0.5, a 1.x and a 2.0 server, side by side, on the same posting.
 Base URL is wherever you run it — `http://localhost:8080` by default. The
 interactive OpenAPI page FastAPI generates is at `/docs`.
 
-The first path segment names the pipeline (`/v1` today), and every pipeline
-answers the same endpoints with the same shapes; a client picks one with
-`pipeline` in its server section. The examples below use `/v1`.
+The first path segment names the pipeline (`/v1`, `/v2`), and every pipeline
+answers the same endpoints with the same shapes; a client's server URL ends
+with it. Pipeline 2.0 has no job analysis and no letter: under `/v2`,
+`jd/detect`, `jd/analysis` and `letter` answer with v1's pipeline, so one
+server entry works for every command. The examples below use `/v1`.
 
 ## Conventions
 
@@ -125,6 +127,9 @@ its job.
 }}
 ```
 
+`models` is the model per role. A server that serves several pipelines names
+each role after its pipeline: `"v1.cv"`, `"v2.compile"`.
+
 ## `POST /v1/jd/detect`
 
 Is the job's `job_description.txt` a job posting?
@@ -201,9 +206,21 @@ There is no step-level resume: a job that holds only `steps/...` is written
 again. A **written** CV stores `step` `cv.json` (the merged document,
 `indent=2`, `ensure_ascii=False`), `step` `cv.tex`, and `cv` `cv.pdf`; the 1.x
 pipeline also stores each intermediate result as `step` `steps/<name>.json`
-as it is ready. A **rendered** document stores `step` `cv.tex` and `cv`
-`cv.pdf`; a **compiled** tex stores `cv` `cv.pdf` only. No pipeline stores a
-`CACHE` item yet.
+as it is ready, the 2.0 pipeline its job's steps as `steps/<name>.json` and
+`steps/<name>.md`. A **rendered** document stores `step` `cv.tex` and `cv`
+`cv.pdf`; a **compiled** tex stores `cv` `cv.pdf` only.
+
+**The 2.0 pipeline's store** (`/v2/cv`) is built once per profile and travels
+as `CACHE` `step` items: `items.json`, `tree.json` and `pool.json`, each
+stored as soon as it is built, with its readable page (`items.md`, `tree.md`,
+`pool.md`, `review.md`). The client keeps them in the server folder's
+`cache/`, and every pack sends them back (`cache/items.json`, ...); the
+pipeline builds only the files the pack lacks, in that order. The store takes
+longer than one job's time budget: a job that cannot finish the store, or has
+too little time left for the CV, ends with `budget_exceeded`, saying which
+files are built, after storing them. Running the same posting again
+continues. Nothing checks the store against the profile: after a profile
+change, delete `cache/`. No other pipeline stores a `CACHE` item.
 
 Answers `202` with `{"request_id": "<id>", "ok": true, "data": {"reattached":
 false}}`.
